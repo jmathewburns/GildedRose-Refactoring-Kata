@@ -49,21 +49,40 @@ impl GildedRose {
         let Item { name, sell_in, quality } = &item;
 
         let (sell_in_delta, quality_delta) = match (name.as_str(), *sell_in, *quality) {
-            (GildedRose::SULFURAS, _, _) => { (0, 0) }
-            (GildedRose::AGED_BRIE, _, quality) if quality >= 50 => { (-1, 0) }
-            (GildedRose::AGED_BRIE, _, _) => { (-1, 1) }
+            (GildedRose::SULFURAS, _, _) => {
+                (0, 0)
+            }
+            (GildedRose::AGED_BRIE, _, quality) => {
+                (-1, clamp_quality_delta(quality, 1))
+            }
             (GildedRose::BACKSTAGE_PASSES, sell_in, quality) if sell_in <= 0 => { (-1, -quality) }
-            (GildedRose::BACKSTAGE_PASSES, _, quality) if quality >= 50 => { (-1, 0) }
             (GildedRose::BACKSTAGE_PASSES, sell_in, _) if sell_in <= 5 => { (-1, 3) }
             (GildedRose::BACKSTAGE_PASSES, sell_in, _) if sell_in <= 10 => { (-1, 2) }
-            (GildedRose::BACKSTAGE_PASSES, _, _) => { (-1, 1) }
-            (_, sell_in, quality) if sell_in <= 0 && quality >= 2 => { (-1, -2) }
-            (_, _, quality) if quality <= 1 => { (-1, -quality) }
-            _ => (-1, -1)
+            (GildedRose::BACKSTAGE_PASSES, _, quality) => {
+                (-1, clamp_quality_delta(quality, 1))
+            }
+            (_, sell_in, quality) if sell_in <= 0 => {
+                (-1, clamp_quality_delta(quality, -2))
+            }
+            (_, _, quality) => {
+                (-1, clamp_quality_delta(quality, -1))
+            }
         };
 
         item.quality += quality_delta;
         item.sell_in += sell_in_delta;
+    }
+}
+
+fn clamp_quality_delta(current: i32, delta: i32) -> i32 {
+    if current >= 50 || current <= 0 {
+        0
+    } else if current + delta > 50 {
+        current + delta - 50
+    } else if current + delta < 0 {
+        -current
+    } else {
+        delta
     }
 }
 
@@ -133,8 +152,8 @@ mod tests {
     #[test]
     pub fn aged_brie_quality_already_above_fifty_should_not_go_down() {
         assert_eq_expected_after_update(
-            Item { name: "Backstage passes to a TAFKAL80ETC concert".to_string(), sell_in: 10, quality: 76 },
-            Item { name: "Backstage passes to a TAFKAL80ETC concert".to_string(), sell_in: 9, quality: 76 },
+            Item { name: "Aged Brie".to_string(), sell_in: 10, quality: 76 },
+            Item { name: "Aged Brie".to_string(), sell_in: 9, quality: 76 },
         );
     }
 
@@ -177,6 +196,23 @@ mod tests {
             Item { name: "Backstage passes to a TAFKAL80ETC concert".to_string(), sell_in: -1, quality: 0 },
         );
     }
+
+    #[test]
+    pub fn backstage_pass_quality_should_not_go_above_fifty() {
+        assert_eq_expected_after_update(
+            Item { name: "Backstage passes to a TAFKAL80ETC concert".to_string(), sell_in: 30, quality: 50 },
+            Item { name: "Backstage passes to a TAFKAL80ETC concert".to_string(), sell_in: 30, quality: 50 },
+        );
+    }
+
+    #[test]
+    pub fn backstage_pass_quality_already_above_fifty_should_not_go_down() {
+        assert_eq_expected_after_update(
+            Item { name: "Backstage passes to a TAFKAL80ETC concert".to_string(), sell_in: 30, quality: 76 },
+            Item { name: "Backstage passes to a TAFKAL80ETC concert".to_string(), sell_in: 30, quality: 76 },
+        );
+    }
+
 
     fn assert_eq_expected_after_update(original: Item, expected: Item) {
         /* Moving ok here */
