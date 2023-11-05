@@ -1,4 +1,5 @@
 use std::fmt::{self, Display};
+use std::string::ToString;
 
 pub struct Item {
     pub name: String,
@@ -37,55 +38,32 @@ impl GildedRose {
         }
     }
 
+    const AGED_BRIE: &'static str = "Aged Brie";
+    const BACKSTAGE_PASSES: &'static str = "Backstage passes to a TAFKAL80ETC concert";
+    const SULFURAS: &'static str = "Sulfuras, Hand of Ragnaros";
+
+    const BASE_QUALITY_DECAY: i32 = -1;
+    const BASE_SELL_IN_DECAY: i32 = -1;
+
     pub fn update_item_quality(item: &mut Item) {
-        if item.name != "Aged Brie" && item.name != "Backstage passes to a TAFKAL80ETC concert"
-        {
-            if item.quality > 0 {
-                if item.name != "Sulfuras, Hand of Ragnaros" {
-                    item.quality = item.quality - 1;
-                }
-            }
-        } else {
-            if item.quality < 50 {
-                item.quality = item.quality + 1;
+        let Item { name, sell_in, quality } = &item;
 
-                if item.name == "Backstage passes to a TAFKAL80ETC concert" {
-                    if item.sell_in < 11 {
-                        if item.quality < 50 {
-                            item.quality = item.quality + 1;
-                        }
-                    }
+        let (sell_in_delta, quality_delta) = match (name.as_str(), *sell_in, *quality) {
+            (GildedRose::SULFURAS, _, _) => { (0, 0) }
+            (GildedRose::AGED_BRIE, _, quality) if quality >= 50 => { (-1, 0) }
+            (GildedRose::AGED_BRIE, _, _) => { (-1, 1) }
+            (GildedRose::BACKSTAGE_PASSES, sell_in, quality) if sell_in <= 0 => { (-1, -quality) }
+            (GildedRose::BACKSTAGE_PASSES, _, quality) if quality >= 50 => { (-1, 0) }
+            (GildedRose::BACKSTAGE_PASSES, sell_in, _) if sell_in <= 5 => { (-1, 3) }
+            (GildedRose::BACKSTAGE_PASSES, sell_in, _) if sell_in <= 10 => { (-1, 2) }
+            (GildedRose::BACKSTAGE_PASSES, _, _) => { (-1, 1) }
+            (_, sell_in, quality) if sell_in <= 0 && quality >= 2 => { (-1, -2) }
+            (_, _, quality) if quality <= 1 => { (-1, -quality) }
+            _ => (-1, -1)
+        };
 
-                    if item.sell_in < 6 {
-                        if item.quality < 50 {
-                            item.quality = item.quality + 1;
-                        }
-                    }
-                }
-            }
-        }
-
-        if item.name != "Sulfuras, Hand of Ragnaros" {
-            item.sell_in = item.sell_in - 1;
-        }
-
-        if item.sell_in < 0 {
-            if item.name != "Aged Brie" {
-                if item.name != "Backstage passes to a TAFKAL80ETC concert" {
-                    if item.quality > 0 {
-                        if item.name != "Sulfuras, Hand of Ragnaros" {
-                            item.quality = item.quality - 1;
-                        }
-                    }
-                } else {
-                    item.quality = item.quality - item.quality;
-                }
-            } else {
-                if item.quality < 50 {
-                    item.quality = item.quality + 1;
-                }
-            }
-        }
+        item.quality += quality_delta;
+        item.sell_in += sell_in_delta;
     }
 }
 
