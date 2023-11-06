@@ -38,48 +38,37 @@ impl GildedRose {
         }
     }
 
-    const AGED_BRIE: &'static str = "Aged Brie";
-    const BACKSTAGE_PASSES: &'static str = "Backstage passes to a TAFKAL80ETC concert";
-    const SULFURAS: &'static str = "Sulfuras, Hand of Ragnaros";
-
-    const BASE_QUALITY_DECAY: i32 = -1;
-    const BASE_SELL_IN_DECAY: i32 = -1;
-
     pub fn update_item_quality(item: &mut Item) {
-        let Item { name, sell_in, quality } = &item;
+        const AGED_BRIE: &str = "Aged Brie";
+        const BACKSTAGE_PASSES: &str = "Backstage passes to a TAFKAL80ETC concert";
+        const SULFURAS: &str = "Sulfuras, Hand of Ragnaros";
 
-        let (sell_in_delta, quality_delta) = match (name.as_str(), *sell_in, *quality) {
-            (GildedRose::SULFURAS, _, _) => {
-                (0, 0)
-            }
-            (GildedRose::AGED_BRIE, _, quality) => {
-                (-1, clamp_quality_delta(quality, 1))
-            }
-            (GildedRose::BACKSTAGE_PASSES, sell_in, quality) if sell_in <= 0 => { (-1, -quality) }
-            (GildedRose::BACKSTAGE_PASSES, sell_in, _) if sell_in <= 5 => { (-1, 3) }
-            (GildedRose::BACKSTAGE_PASSES, sell_in, _) if sell_in <= 10 => { (-1, 2) }
-            (GildedRose::BACKSTAGE_PASSES, _, quality) => {
-                (-1, clamp_quality_delta(quality, 1))
-            }
-            (_, sell_in, quality) if sell_in <= 0 => {
-                (-1, clamp_quality_delta(quality, -2))
-            }
-            (_, _, quality) => {
-                (-1, clamp_quality_delta(quality, -1))
-            }
+        let (sell_in_delta, quality_delta) = match (item.name.as_str(), item.sell_in, item.quality) {
+            (SULFURAS,                      ..) => { ( 0,        0) }
+            (AGED_BRIE,                     ..) => { (-1,        1) }
+            (BACKSTAGE_PASSES,  ..= 0, quality) => { (-1, -quality) }
+            (BACKSTAGE_PASSES, 1..= 5,      ..) => { (-1,        3) }
+            (BACKSTAGE_PASSES, 6..=10,      ..) => { (-1,        2) }
+            (BACKSTAGE_PASSES,              ..) => { (-1,        1) }
+            (_,                  ..=0,       _) => { (-1,       -2) }
+            (                               ..) => { (-1,       -1) }
         };
 
-        item.quality += quality_delta;
+        item.quality += clamp_quality_delta(item.quality, quality_delta);
         item.sell_in += sell_in_delta;
     }
 }
 
 fn clamp_quality_delta(current: i32, delta: i32) -> i32 {
-    if current >= 50 || current <= 0 {
-        0
-    } else if current + delta > 50 {
-        current + delta - 50
-    } else if current + delta < 0 {
+    const QUALITY_MAX: i32 = 50;
+    const QUALITY_MIN: i32 = 0;
+    const NO_CHANGE: i32 = 0;
+
+    if current >= QUALITY_MAX || current <= QUALITY_MIN {
+        NO_CHANGE
+    } else if current + delta > QUALITY_MAX {
+        current + delta - QUALITY_MAX
+    } else if current + delta < QUALITY_MIN {
         -current
     } else {
         delta
@@ -201,7 +190,7 @@ mod tests {
     pub fn backstage_pass_quality_should_not_go_above_fifty() {
         assert_eq_expected_after_update(
             Item { name: "Backstage passes to a TAFKAL80ETC concert".to_string(), sell_in: 30, quality: 50 },
-            Item { name: "Backstage passes to a TAFKAL80ETC concert".to_string(), sell_in: 30, quality: 50 },
+            Item { name: "Backstage passes to a TAFKAL80ETC concert".to_string(), sell_in: 29, quality: 50 },
         );
     }
 
@@ -209,7 +198,7 @@ mod tests {
     pub fn backstage_pass_quality_already_above_fifty_should_not_go_down() {
         assert_eq_expected_after_update(
             Item { name: "Backstage passes to a TAFKAL80ETC concert".to_string(), sell_in: 30, quality: 76 },
-            Item { name: "Backstage passes to a TAFKAL80ETC concert".to_string(), sell_in: 30, quality: 76 },
+            Item { name: "Backstage passes to a TAFKAL80ETC concert".to_string(), sell_in: 29, quality: 76 },
         );
     }
 
