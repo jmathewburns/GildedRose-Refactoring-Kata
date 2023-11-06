@@ -33,30 +33,30 @@ impl GildedRose {
     }
 
     pub fn update_quality(&mut self) {
-        for i in 0..self.items.len() {
-            Self::update_item_quality(&mut self.items[i]);
+        for item in &mut self.items {
+            update_item_quality(item);
         }
     }
+}
 
-    pub fn update_item_quality(item: &mut Item) {
-        const AGED_BRIE: &str = "Aged Brie";
-        const BACKSTAGE_PASSES: &str = "Backstage passes to a TAFKAL80ETC concert";
-        const SULFURAS: &str = "Sulfuras, Hand of Ragnaros";
+pub fn update_item_quality(item: &mut Item) {
+    const AGED_BRIE: &str = "Aged Brie";
+    const BACKSTAGE_PASSES: &str = "Backstage passes to a TAFKAL80ETC concert";
+    const SULFURAS: &str = "Sulfuras, Hand of Ragnaros";
 
-        let (sell_in_delta, quality_delta) = match (item.name.as_str(), item.sell_in, item.quality) {
-            (SULFURAS,                      ..) => { ( 0,        0) }
-            (AGED_BRIE,                     ..) => { (-1,        1) }
-            (BACKSTAGE_PASSES,  ..= 0, quality) => { (-1, -quality) }
-            (BACKSTAGE_PASSES, 1..= 5,      ..) => { (-1,        3) }
-            (BACKSTAGE_PASSES, 6..=10,      ..) => { (-1,        2) }
-            (BACKSTAGE_PASSES,              ..) => { (-1,        1) }
-            (_,                  ..=0,       _) => { (-1,       -2) }
-            (                               ..) => { (-1,       -1) }
-        };
+    let (sell_in_delta, quality_delta) = match (item.name.as_str(), item.sell_in, item.quality) {
+        (SULFURAS,                      ..) => { ( 0,        0) }
+        (AGED_BRIE,                     ..) => { (-1,        1) }
+        (BACKSTAGE_PASSES,  ..= 0, quality) => { (-1, -quality) }
+        (BACKSTAGE_PASSES, 1..= 5,      ..) => { (-1,        3) }
+        (BACKSTAGE_PASSES, 6..=10,      ..) => { (-1,        2) }
+        (BACKSTAGE_PASSES,              ..) => { (-1,        1) }
+        (_,                  ..=0,       _) => { (-1,       -2) }
+        (                               ..) => { (-1,       -1) }
+    };
 
-        item.quality += clamp_quality_delta(item.quality, quality_delta);
-        item.sell_in += sell_in_delta;
-    }
+    item.quality += clamp_quality_delta(item.quality, quality_delta);
+    item.sell_in += sell_in_delta;
 }
 
 fn clamp_quality_delta(current: i32, delta: i32) -> i32 {
@@ -77,7 +77,7 @@ fn clamp_quality_delta(current: i32, delta: i32) -> i32 {
 
 #[cfg(test)]
 mod tests {
-    use super::{GildedRose, Item};
+    use super::{GildedRose, Item, update_item_quality};
 
     #[test]
     pub fn should_not_add_or_remove_items() {
@@ -206,7 +206,7 @@ mod tests {
     fn assert_eq_expected_after_update(original: Item, expected: Item) {
         /* Moving ok here */
         let mut updated = original;
-        GildedRose::update_item_quality(&mut updated);
+        update_item_quality(&mut updated);
 
         assert_eq(&expected, &updated);
     }
