@@ -203,12 +203,10 @@ mod tests {
     }
 
 
-    fn assert_eq_expected_after_update(original: Item, expected: Item) {
-        /* Moving ok here */
-        let mut updated = original;
-        update_item_quality(&mut updated);
+    fn assert_eq_expected_after_update(mut original: Item, expected: Item) {
+        update_item_quality(&mut original);
 
-        assert_eq(&expected, &updated);
+        assert_eq(&expected, &original);
     }
 
     fn assert_all_eq(one: &[Item], other: &[Item]) {
